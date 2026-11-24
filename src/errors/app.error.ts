@@ -9,6 +9,7 @@ export class AppError extends Error {
     validationErrors?: Array<{ field: string; message: string }>
   ) {
     super(message);
+    this.name = this.constructor.name;
     this.statusCode = statusCode;
     this.isOperational = true;
     this.validationErrors = validationErrors;
