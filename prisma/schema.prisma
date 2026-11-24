@@ -1,0 +1,226 @@
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+enum Role {
+  SUPER_ADMIN
+  FACILITY_ADMIN
+  FIELD_TECH
+  COMPLIANCE_AUDITOR
+  VIEWER
+}
+
+enum UserStatus {
+  ACTIVE
+  SUSPENDED
+  PENDING_APPROVAL
+}
+
+enum EmployeeStatus {
+  ACTIVE
+  ON_CALL
+  LEAVE
+  SUSPENDED
+  OFFBOARDING
+}
+
+enum AssetStatus {
+  ACTIVE
+  MAINTENANCE
+  OFFLINE
+  STORAGE
+}
+
+enum TicketSeverity {
+  CRITICAL
+  HIGH
+  MEDIUM
+  LOW
+}
+
+enum TicketStatus {
+  OPEN
+  IN_PROGRESS
+  PENDING_VENDOR
+  RESOLVED
+  ASSIGNED
+  CLOSED
+}
+
+model User {
+  id           String     @id @default(uuid())
+  email        String     @unique
+  passwordHash String
+  fullName     String
+  role         Role       @default(FIELD_TECH)
+  status       UserStatus @default(ACTIVE)
+  avatar       String?
+  facilityId   String?
+  facility     Facility?  @relation(fields: [facilityId], references: [id], onDelete: SetNull)
+  lastLoginAt  DateTime?
+  createdAt    DateTime   @default(now())
+  updatedAt    DateTime   @updatedAt
+
+  auditLogs    AuditLog[]
+
+  @@index([email])
+  @@index([role])
+}
+
+model Facility {
+  id              String         @id @default(uuid())
+  code            String         @unique
+  name            String
+  subtitle        String?
+  category        String
+  status          String         @default("healthy")
+  uptimePercent   Float          @default(99.9)
+  address         String
+  district        String
+  subnet          String
+  activeFleet     Int            @default(0)
+  createdAt       DateTime       @default(now())
+  updatedAt       DateTime       @updatedAt
+
+  users           User[]
+  employees       Employee[]
+  assets          ITAsset[]
+  tickets         SupportTicket[]
+  tasks           TaskItem[]
+
+  @@index([code])
+}
+
+model Employee {
+  id             String         @id @default(uuid())
+  employeeId     String         @unique
+  name           String
+  role           String
+  title          String
+  department     String
+  shift          String
+  phone          String
+  email          String         @unique
+  status         EmployeeStatus @default(ACTIVE)
+  isAdmin        Boolean        @default(false)
+  avatar         String?
+  certifications String[]
+  specialty      String
+  linkedAssets   String[]
+  openTickets    Int            @default(0)
+
+  facilityId     String
+  facility       Facility       @relation(fields: [facilityId], references: [id], onDelete: Cascade)
+  assignedAssets ITAsset[]      @relation("CustodianRelation")
+  createdTickets SupportTicket[] @relation("TicketRequester")
+  createdAt      DateTime       @default(now())
+  updatedAt      DateTime       @updatedAt
+
+  @@index([employeeId])
+  @@index([email])
+  @@index([department])
+}
+
+model ITAsset {
+  id              String      @id @default(uuid())
+  assetTag        String      @unique
+  serialNumber    String      @unique
+  name            String
+  category        String
+  brand           String?
+  modelRevision   String?
+  purchaseDate    DateTime
+  costBdt         Decimal?    @db.Decimal(12, 2)
+  vendor          String?
+  warrantyExpires DateTime
+  attachedInvoice String?
+  tags            String[]
+  status          AssetStatus @default(ACTIVE)
+  locationDetail  String
+  department      String
+  ipAddress       String
+  macAddress      String
+  vlanSubnet      String?
+  lastPing        String?
+
+  custodianId     String?
+  custodian       Employee?   @relation("CustodianRelation", fields: [custodianId], references: [id], onDelete: SetNull)
+
+  facilityId      String
+  facility        Facility    @relation(fields: [facilityId], references: [id], onDelete: Cascade)
+  createdAt       DateTime    @default(now())
+  updatedAt       DateTime    @updatedAt
+
+  @@index([assetTag])
+  @@index([serialNumber])
+  @@index([category])
+  @@index([status])
+}
+
+model SupportTicket {
+  id           String         @id @default(uuid())
+  ticketNumber String         @unique
+  title        String
+  scope        String?
+  severity     TicketSeverity @default(HIGH)
+  status       TicketStatus   @default(OPEN)
+  category     String
+  description  String
+  assigneeName String
+
+  requesterId  String?
+  requester    Employee?      @relation("TicketRequester", fields: [requesterId], references: [id], onDelete: SetNull)
+
+  facilityId   String
+  facility     Facility       @relation(fields: [facilityId], references: [id], onDelete: Cascade)
+  createdAt    DateTime       @default(now())
+  updatedAt    DateTime       @updatedAt
+
+  @@index([ticketNumber])
+  @@index([severity])
+  @@index([status])
+}
+
+model TaskItem {
+  id              String    @id @default(uuid())
+  taskNumber      String    @unique
+  title           String
+  description     String
+  category        String
+  domainTag       String
+  status          String    @default("todo")
+  priority        String    @default("medium")
+  progressPercent Int       @default(0)
+  subtasks        Json?
+  dueDate         DateTime?
+
+  facilityId      String
+  facility        Facility  @relation(fields: [facilityId], references: [id], onDelete: Cascade)
+  createdAt       DateTime  @default(now())
+  updatedAt       DateTime  @updatedAt
+
+  @@index([taskNumber])
+  @@index([status])
+}
+
+model AuditLog {
+  id        String   @id @default(uuid())
+  userId    String?
+  user      User?    @relation(fields: [userId], references: [id], onDelete: SetNull)
+  action    String
+  entity    String
+  entityId  String?
+  details   Json?
+  ipAddress String?
+  userAgent String?
+  createdAt DateTime @default(now())
+
+  @@index([action])
+  @@index([entity])
+  @@index([createdAt])
+}
