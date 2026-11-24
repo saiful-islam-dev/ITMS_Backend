@@ -35,7 +35,8 @@ export class FacilitiesController {
 
   public getThermals = async (req: Request, res: Response, next: NextFunction): Promise<void> => {
     try {
-      const thermals = await this.facilitiesService.getThermals(req.params.id);
+      const facilityId = Array.isArray(req.params.id) ? req.params.id[0] : req.params.id;
+      const thermals = await this.facilitiesService.getThermals(facilityId);
       sendSuccessResponse({
         res,
         statusCode: 200,

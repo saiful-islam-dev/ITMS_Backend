@@ -64,7 +64,8 @@ export class AssetsController {
 
   public pingAsset = async (req: Request, res: Response, next: NextFunction): Promise<void> => {
     try {
-      const result = await this.assetsService.pingAsset(req.params.id);
+      const assetId = Array.isArray(req.params.id) ? req.params.id[0] : req.params.id;
+      const result = await this.assetsService.pingAsset(assetId);
       sendSuccessResponse({
         res,
         statusCode: 200,

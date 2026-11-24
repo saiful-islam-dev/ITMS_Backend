@@ -51,7 +51,8 @@ export class EmployeesController {
 
   public updateStatus = async (req: Request, res: Response, next: NextFunction): Promise<void> => {
     try {
-      const updated = await this.employeesService.updateStatus(req.params.id, req.body.status);
+      const employeeId = Array.isArray(req.params.id) ? req.params.id[0] : req.params.id;
+      const updated = await this.employeesService.updateStatus(employeeId, req.body.status);
       sendSuccessResponse({
         res,
         statusCode: 200,

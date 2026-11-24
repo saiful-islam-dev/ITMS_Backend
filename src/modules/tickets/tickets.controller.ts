@@ -21,7 +21,8 @@ export class TicketsController {
 
   public updateStatus = async (req: Request, res: Response, next: NextFunction): Promise<void> => {
     try {
-      const updated = await this.ticketsService.updateStatus(req.params.id, req.body.status);
+      const ticketId = Array.isArray(req.params.id) ? req.params.id[0] : req.params.id;
+      const updated = await this.ticketsService.updateStatus(ticketId, req.body.status);
       sendSuccessResponse({
         res,
         statusCode: 200,
