@@ -1,0 +1,24 @@
+version: '3.8'
+
+services:
+  itms-postgres:
+    image: postgres:16-alpine
+    container_name: itms-postgres-db
+    restart: always
+    environment:
+      POSTGRES_USER: itms_admin
+      POSTGRES_PASSWORD: itms_secure_pass_2026
+      POSTGRES_DB: itms_enterprise_db
+    ports:
+      - '5432:5432'
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ['CMD-SHELL', 'pg_isready -U itms_admin -d itms_enterprise_db']
+      interval: 5s
+      timeout: 5s
+      retries: 5
+
+volumes:
+  postgres_data:
+    driver: local
