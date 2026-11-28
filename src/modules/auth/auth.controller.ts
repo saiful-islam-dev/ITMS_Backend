@@ -4,11 +4,12 @@ import { sendSuccessResponse } from '../../utils/response.util';
 import { UnauthorizedError } from '../../errors/app.error';
 
 export class AuthController {
-  constructor(private readonly authService = new AuthService()) {}
+  constructor(private readonly authService = new AuthService()) { }
 
   public register = async (req: Request, res: Response, next: NextFunction): Promise<void> => {
     try {
       const result = await this.authService.register(req.body);
+
       sendSuccessResponse({
         res,
         statusCode: 201,

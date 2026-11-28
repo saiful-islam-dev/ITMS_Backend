@@ -7,6 +7,7 @@ import { Role } from '../../constants/roles.enum';
 
 export class AuthService {
   public async register(dto: RegisterDto) {
+
     const existingUser = await prisma.user.findUnique({
       where: { email: dto.email.toLowerCase() },
     });
@@ -17,13 +18,35 @@ export class AuthService {
 
     const passwordHash = await PasswordUtil.hash(dto.password);
 
+    // Resolve facility if provided (by ID or facility code)
+    let resolvedFacilityId: string | null = null;
+    if (dto.facilityId) {
+      const facility = await prisma.facility.findFirst({
+        where: {
+          OR: [
+            { id: dto.facilityId },
+            { code: dto.facilityId },
+            { code: dto.facilityId.toUpperCase() },
+          ],
+        },
+      });
+
+      if (facility) {
+        resolvedFacilityId = facility.id;
+      } else if (dto.role !== Role.SUPER_ADMIN) {
+        throw new NotFoundError(
+          `Facility with ID or code '${dto.facilityId}' was not found. Please provide a valid facility or leave blank.`
+        );
+      }
+    }
+
     const user = await prisma.user.create({
       data: {
         fullName: dto.fullName,
         email: dto.email.toLowerCase(),
         passwordHash,
         role: dto.role || Role.FIELD_TECH,
-        facilityId: dto.facilityId || null,
+        facilityId: resolvedFacilityId,
       },
       select: {
         id: true,
